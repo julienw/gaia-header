@@ -18,6 +18,8 @@ require('gaia-icons');
  */
 var actionTypes = { menu: 1, back: 1, close: 1 };
 
+const KNOWN_ATTRIBUTES = ['action'];
+
 /**
  * Register the component.
  *
@@ -34,6 +36,9 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   created: function() {
+    this.attrs = {};
+    KNOWN_ATTRIBUTES.forEach((name) => this._updateAttribute(name));
+
     this.createShadowRoot().innerHTML = this.template;
 
     // Get els
@@ -65,10 +70,37 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   attributeChanged: function(attr) {
+    if (KNOWN_ATTRIBUTES.indexOf(attr) === -1) {
+      return;
+    }
+
+    this._updateAttribute(attr);
+
     if (attr === 'action') {
       this.configureActionButton();
       this.rerunFontFit();
     }
+  },
+
+  /**
+   * Used to camel case a word containing dashes
+   *
+   * @private
+   */
+  _camelCase: function ut_camelCase(str) {
+    return str.replace(/-(.)/g, function replacer(str, p1) {
+      return p1.toUpperCase();
+    });
+  },
+
+  /**
+   * Updates an attribute value in the internal attrs object
+   *
+   * @private
+   */
+  _updateAttribute: function(name) {
+    var newVal = this.getAttribute(name);
+    this.attrs[this._camelCase(name)] = newVal;
   },
 
   /**
@@ -104,7 +136,7 @@ module.exports = Component.register('gaia-header', {
    * @public
    */
   triggerAction: function() {
-    if (this.isSupportedAction(this.getAttribute('action'))) {
+    if (this.isSupportedAction(this.attrs.action)) {
       this.els.actionButton.click();
     }
   },
@@ -118,7 +150,7 @@ module.exports = Component.register('gaia-header', {
    */
   configureActionButton: function() {
     var old = this.els.actionButton.getAttribute('icon');
-    var type = this.getAttribute('action');
+    var type = this.attrs.action;
     var supported = this.isSupportedAction(type);
     this.els.actionButton.classList.remove('icon-' + old);
     this.els.actionButton.setAttribute('icon', type);
@@ -132,7 +164,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   isSupportedAction: function(action) {
-    return action && actionTypes[action];
+    return !!(action && actionTypes[action]);
   },
 
   /**
@@ -146,7 +178,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   onActionButtonClick: function(e) {
-    var config = { detail: { type: this.getAttribute('action') } };
+    var config = { detail: { type: this.attrs.action } };
     var actionEvent = new CustomEvent('action', config);
     setTimeout(this.dispatchEvent.bind(this, actionEvent));
   },
