@@ -27,14 +27,14 @@ suite('GaiaHeader', function() {
   test('It hides the action button if no action type defined', function() {
     this.container.innerHTML = '<gaia-header></gaia-header>';
     var inner = this.container.firstElementChild.shadowRoot.querySelector('.inner');
-    assert.isFalse(inner.classList.contains('action-supported'));
+    assert.isFalse(inner.classList.contains('supported-action'));
   });
 
   test('It doesn\'t show an action button for unsupported action types', function() {
     this.container.innerHTML = '<gaia-header action="unsupported"></gaia-header>';
     var element = this.container.firstElementChild;
     var inner = element.shadowRoot.querySelector('.inner');
-    assert.isFalse(inner.classList.contains('action-supported'));
+    assert.isFalse(inner.classList.contains('supported-action'));
   });
 
   test('It adds the correct icon attribute for the action type', function() {
@@ -42,9 +42,35 @@ suite('GaiaHeader', function() {
       this.container.innerHTML = '<gaia-header action="' + type + '"></gaia-header>';
       var element = this.container.firstElementChild;
       var actionButton = element.shadowRoot.querySelector('.action-button');
+      var inner = element.shadowRoot.querySelector('.inner');
       assert.isTrue(actionButton.classList.contains('icon-' + type));
+      assert.isTrue(inner.classList.contains('supported-action'));
     }, this);
   });
+
+  test('It catches changes to the `action` attribute', function() {
+    this.container.innerHTML = '<gaia-header action="back"></gaia-header>';
+    var element = this.container.firstElementChild;
+    var actionButton = element.shadowRoot.querySelector('.action-button');
+    var inner = element.shadowRoot.querySelector('.inner');
+    assert.isTrue(actionButton.classList.contains('icon-back'));
+
+    /* change to another supported action */
+    element.setAttribute('action', 'close');
+    assert.isTrue(actionButton.classList.contains('icon-close'));
+    assert.isTrue(inner.classList.contains('supported-action'));
+
+    /* change to an unsupported action */
+    element.setAttribute('action', 'unsupported');
+    assert.isFalse(actionButton.classList.contains('icon-unsupported'));
+    assert.isFalse(inner.classList.contains('supported-action'));
+
+    /* back to something supported */
+    element.setAttribute('action', 'menu');
+    assert.isTrue(actionButton.classList.contains('icon-menu'));
+    assert.isTrue(inner.classList.contains('supported-action'));
+  });
+
 
   test('Should add a click event listener to the action button if an action defined', function() {
     this.container.innerHTML = '<gaia-header action="menu"></gaia-header>';
@@ -57,16 +83,6 @@ suite('GaiaHeader', function() {
     this.container.innerHTML = '<gaia-header action="menu"></gaia-header>';
     var element = this.container.firstElementChild;
     assert.ok(element.querySelector('style'));
-  });
-
-  test('Should change action button when action changes', function() {
-    this.container.innerHTML = '<gaia-header></gaia-header>';
-    var element = this.container.firstElementChild;
-    var button = element.shadowRoot.querySelector('.action-button');
-    element.setAttribute('action', 'back');
-    assert.isTrue(button.classList.contains('icon-back'));
-    element.setAttribute('action', 'menu');
-    assert.isTrue(button.classList.contains('icon-menu'));
   });
 
   test('triggerAction() should cause a `click` on action button', function() {
