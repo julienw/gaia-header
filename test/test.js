@@ -106,13 +106,30 @@ suite('GaiaHeader', function() {
     document.body.appendChild(element);
   });
 
-  test('rerunFontFit does not b0rk the markup', function() {
+  test('runFontFit does not b0rk the markup', function() {
     this.container.innerHTML = '<gaia-header action="back"><h1><p>markup</p></gaia-header>';
 
     var element = this.container.firstElementChild;
-    element.rerunFontFit();
+    element.runFontFit();
 
     assert.isNotNull(element.querySelector('p'));
+  });
+
+  test('It should still work fine after detaching and reattaching', function() {
+    this.container.innerHTML = '<gaia-header action="menu"><h1>title</h1></gaia-header>';
+    var element = this.container.firstElementChild;
+    var h1 = element.querySelector('h1');
+
+    this.sandbox.stub(realGaiaHeaderFontFit, 'disconnectHeadingObserver');
+    element.remove();
+    sinon.assert.called(realGaiaHeaderFontFit.disconnectHeadingObserver);
+
+    this.sandbox.stub(realGaiaHeaderFontFit, 'reformatHeading');
+    this.sandbox.stub(realGaiaHeaderFontFit, 'observeHeadingChanges');
+    this.container.appendChild(element);
+
+    sinon.assert.calledWith(realGaiaHeaderFontFit.reformatHeading, h1);
+    sinon.assert.calledWith(realGaiaHeaderFontFit.observeHeadingChanges, h1);
   });
 
   suite('style', function() {
