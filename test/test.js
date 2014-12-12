@@ -132,6 +132,26 @@ suite('GaiaHeader', function() {
     sinon.assert.calledWith(realGaiaHeaderFontFit.observeHeadingChanges, h1);
   });
 
+  test('no-font-fit attribute', function() {
+    this.sandbox.stub(realGaiaHeaderFontFit, 'reformatHeading');
+    this.sandbox.stub(realGaiaHeaderFontFit, 'observeHeadingChanges');
+    this.sandbox.useFakeTimers();
+
+    this.container.innerHTML = '<gaia-header no-font-fit><h1>title</h1></gaia-header>';
+
+    var element = this.container.firstElementChild;
+    var h1 = element.querySelector('h1');
+
+    sinon.assert.notCalled(realGaiaHeaderFontFit.reformatHeading);
+    sinon.assert.notCalled(realGaiaHeaderFontFit.observeHeadingChanges);
+
+    element.removeAttribute('no-font-fit');
+    this.sandbox.clock.tick();
+
+    sinon.assert.calledWith(realGaiaHeaderFontFit.reformatHeading, h1);
+    sinon.assert.calledWith(realGaiaHeaderFontFit.observeHeadingChanges, h1);
+  });
+
   suite('style', function() {
     setup(function() {
 
