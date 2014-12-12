@@ -592,25 +592,62 @@ suite('font-fit.js', function() {
 
       test('has the right behavior', function() {
         sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
-        assert.equal(h1.style.marginLeft, '50px', 'sets the correct margin');
+        assert.equal(
+          h1.style.MozMarginStart, '50px', 'sets the correct left margin'
+        );
+        assert.equal(
+          h1.style.MozMarginEnd, '0px', 'sets the correct right margin'
+        );
+        var h1Style = window.getComputedStyle(h1);
+        assert.equal(
+          h1Style.marginLeft, '50px', 'sets the correct rtl-dependent left margin'
+        );
+        assert.equal(
+          h1Style.marginRight, '0px', 'sets the correct rtl-dependent right margin'
+        );
       });
 
       test('has the right behavior when called again', function() {
         h1.textContent = 'other text';
-        delete h1.style.marginLeft; // reset the value to check if it's correctly set
+        h1.style.marginLeft = '200px'; // reset the value to check if it's correctly set
         GaiaHeaderFontFit.reformatHeading(h1);
 
         sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
-        assert.equal(h1.style.marginLeft, '50px', 'sets the correct margin');
+
+        assert.equal(
+          h1.style.MozMarginStart, '50px', 'sets the correct left margin'
+        );
+        assert.equal(
+          h1.style.MozMarginEnd, '0px', 'sets the correct right margin'
+        );
+        var h1Style = window.getComputedStyle(h1);
+        assert.equal(
+          h1Style.marginLeft, '50px', 'sets the correct rtl-dependent left margin'
+        );
+        assert.equal(
+          h1Style.marginRight, '0px', 'sets the correct rtl-dependent right margin'
+        );
       });
 
-      test('updates stored start/end values when called again', function() {
-        delete h1.style.marginLeft; // reset the value to check if it's correctly set
+      test('updates stored start/end values when called  with different values', function() {
+        h1.style.marginLeft = '200px'; // reset the value to check if it's correctly set
         GaiaHeaderFontFit.reformatHeading(h1, 100, 50);
 
         sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
-        assert.equal(h1.style.marginLeft, '0px', 'sets the correct margin');
-        assert.equal(h1.style.marginRight, '50px', 'sets the correct margin');
+
+        assert.equal(
+          h1.style.MozMarginStart, '0px', 'sets the correct left margin'
+        );
+        assert.equal(
+          h1.style.MozMarginEnd, '50px', 'sets the correct right margin'
+        );
+        var h1Style = window.getComputedStyle(h1);
+        assert.equal(
+          h1Style.marginLeft, '0px', 'sets the correct rtl-dependent left margin'
+        );
+        assert.equal(
+          h1Style.marginRight, '50px', 'sets the correct rtl-dependent right margin'
+        );
       });
 
       test('resets stored information when called with null, null', function() {
