@@ -50,7 +50,18 @@ module.exports = Component.register('gaia-header', {
 
     this.els.actionButton.addEventListener('click', e => this.onActionButtonClick(e));
     this.configureActionButton();
+  },
+
+  /**
+   * Initializes the component.
+   * It especially runs the font-fit algorithm once, and registers the
+   * textContent observer.
+   *
+   * @private
+   */
+  init: function() {
     this.runFontFit();
+    this.addFontFitObserver();
   },
 
   /**
@@ -60,7 +71,14 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   attached: function() {
-    this.rerunFontFit();
+    this.init();
+  },
+
+  /**
+   * Called when the element is detached from the DOM
+   */
+  detached: function() {
+    this.removeFontFitObserver();
   },
 
   /**
@@ -78,7 +96,7 @@ module.exports = Component.register('gaia-header', {
 
     if (attr === 'action') {
       this.configureActionButton();
-      this.rerunFontFit();
+      this.runFontFit();
     }
   },
 
@@ -104,26 +122,32 @@ module.exports = Component.register('gaia-header', {
   },
 
   /**
+   * Adds the textContent observer in the font fit library.
+   *
+   * @private
+   */
+  addFontFitObserver: function() {
+    for (var i = 0; i < this.els.headings.length; i++) {
+      fontFit.observeHeadingChanges(this.els.headings[i]);
+    }
+  },
+
+  /**
+   * Removes the textContent observer in the font fit library.
+   *
+   * @private
+   */
+  removeFontFitObserver: function() {
+    fontFit.disconnectHeadingObserver();
+  },
+
+  /**
    * Runs the logic to size and position
    * header text inside the available space.
    *
    * @private
    */
   runFontFit: function() {
-    for (var i = 0; i < this.els.headings.length; i++) {
-      fontFit.reformatHeading(this.els.headings[i]);
-      fontFit.observeHeadingChanges(this.els.headings[i]);
-    }
-  },
-
-  /**
-   * Rerun font-fit logic.
-   *
-   * TODO: We really need an official API for this.
-   *
-   * @private
-   */
-  rerunFontFit: function() {
     for (var i = 0; i < this.els.headings.length; i++) {
       fontFit.reformatHeading(this.els.headings[i]);
     }
