@@ -18,7 +18,7 @@ require('gaia-icons');
  */
 var actionTypes = { menu: 1, back: 1, close: 1 };
 
-const KNOWN_ATTRIBUTES = ['action', 'skip-init'];
+const KNOWN_ATTRIBUTES = ['action', 'skip-init', 'start', 'end'];
 
 /**
  * Register the component.
@@ -37,6 +37,8 @@ module.exports = Component.register('gaia-header', {
    */
   created: function() {
     this.attrs = {};
+    this.runFontFitTimeout = null;
+
     KNOWN_ATTRIBUTES.forEach((name) => this._updateAttribute(name));
 
     this.createShadowRoot().innerHTML = this.template;
@@ -105,8 +107,9 @@ module.exports = Component.register('gaia-header', {
 
     if (attr === 'action') {
       this.configureActionButton();
-      this.runFontFit();
     }
+
+    this.runFontFitSoon();
   },
 
   /**
@@ -151,6 +154,18 @@ module.exports = Component.register('gaia-header', {
   },
 
   /**
+   * This function will debounce the use of runFontFit. This is used in
+   * attributeChanged so that the component user can change different attributes
+   * and still have runFontFit run once.
+   *
+   * @private
+   */
+  runFontFitSoon: function() {
+    clearTimeout (this.runFontFitTimeout);
+    this.runFontFitTimeout = setTimeout(() => this.runFontFit());
+  },
+
+  /**
    * Runs the logic to size and position
    * header text inside the available space.
    *
@@ -158,7 +173,12 @@ module.exports = Component.register('gaia-header', {
    */
   runFontFit: function() {
     for (var i = 0; i < this.els.headings.length; i++) {
-      fontFit.reformatHeading(this.els.headings[i]);
+      var heading = this.els.headings[i];
+      var start = parseInt(this._start);
+      var end = parseInt(this._end);
+      start = isNaN(start) ? null : start;
+      end = isNaN(end) ? null : end;
+      fontFit.reformatHeading(heading, start, end);
     }
   },
 
