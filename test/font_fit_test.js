@@ -1,3 +1,5 @@
+/*global assert,suite,setup,teardown,sinon,test*/
+/*jshint browser: true */
 'use strict';
 
 suite('font-fit.js', function() {
@@ -568,6 +570,59 @@ suite('font-fit.js', function() {
       });
     });
   });
+
+  suite('reformatHeading()', function() {
+    suite('with start and end,', function() {
+      var h1, offsetLeftGetStub;
+
+      setup(function() {
+        h1 = setupHeaderElement();
+        h1.textContent = 'some text';
+        this.sandbox.spy(window, 'getComputedStyle');
+        offsetLeftGetStub = sinon.stub().returns(0);
+
+        Object.defineProperty(h1, 'offsetLeft', {
+          configurable: true,
+          enumerable: true,
+          get: offsetLeftGetStub
+        });
+
+        GaiaHeaderFontFit.reformatHeading(h1, 50, 100);
+      });
+
+      test('has the right behavior', function() {
+        sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
+        assert.equal(h1.style.marginLeft, '50px', 'sets the correct margin');
+      });
+
+      test('has the right behavior when called again', function() {
+        h1.textContent = 'other text';
+        delete h1.style.marginLeft; // reset the value to check if it's correctly set
+        GaiaHeaderFontFit.reformatHeading(h1);
+
+        sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
+        assert.equal(h1.style.marginLeft, '50px', 'sets the correct margin');
+      });
+
+      test('updates stored start/end values when called again', function() {
+        delete h1.style.marginLeft; // reset the value to check if it's correctly set
+        GaiaHeaderFontFit.reformatHeading(h1, 100, 50);
+
+        sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
+        assert.equal(h1.style.marginLeft, '0px', 'sets the correct margin');
+        assert.equal(h1.style.marginRight, '50px', 'sets the correct margin');
+      });
+
+      test('resets stored information when called with null, null', function() {
+        GaiaHeaderFontFit.reformatHeading(h1, 50, null);
+        sinon.assert.notCalled(offsetLeftGetStub, 'does not use offsetLeft');
+
+        GaiaHeaderFontFit.reformatHeading(h1, null, null);
+        sinon.assert.called(offsetLeftGetStub, 'uses offsetLeft');
+      });
+    });
+  });
+
 
   /*suite('Lazy-Loading DOM MutationObserver', function() {
     test('Lazy loaded header should cause reformat', function(done) {
