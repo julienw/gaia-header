@@ -18,7 +18,7 @@ require('gaia-icons');
  */
 var actionTypes = { menu: 1, back: 1, close: 1 };
 
-const KNOWN_ATTRIBUTES = ['action'];
+const KNOWN_ATTRIBUTES = ['action', 'skip-init'];
 
 /**
  * Register the component.
@@ -60,6 +60,10 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   init: function() {
+    if (this.attrs.skipInit !== null) {
+      return;
+    }
+
     this.runFontFit();
     this.addFontFitObserver();
   },
@@ -93,6 +97,11 @@ module.exports = Component.register('gaia-header', {
     }
 
     this._updateAttribute(attr);
+
+    if (attr === 'skip-init') {
+      setTimeout(() => this.init());
+      return;
+    }
 
     if (attr === 'action') {
       this.configureActionButton();
