@@ -18,7 +18,7 @@ require('gaia-icons');
  */
 var actionTypes = { menu: 1, back: 1, close: 1 };
 
-const KNOWN_ATTRIBUTES = ['action', 'no-font-fit', 'title-start', 'title-end'];
+const KNOWN_ATTRIBUTES = ['action', 'available-width', 'no-font-fit', 'title-start', 'title-end'];
 
 /**
  * Register the component.
@@ -176,9 +176,11 @@ module.exports = Component.register('gaia-header', {
       var heading = this.els.headings[i];
       var start = parseInt(this.attrs.titleStart);
       var end = parseInt(this.attrs.titleEnd);
+      var width = parseInt(this.attrs.availableWidth);
       start = isNaN(start) ? null : start;
       end = isNaN(end) ? null : end;
-      fontFit.reformatHeading(heading, start, end);
+      width =isNaN(width) ? null : end;
+      fontFit.reformatHeading(heading, start, end, width);
     }
   },
 
