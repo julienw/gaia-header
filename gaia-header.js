@@ -18,14 +18,48 @@ require('gaia-icons');
  */
 var actionTypes = { menu: 1, back: 1, close: 1 };
 
-const KNOWN_ATTRIBUTES = ['action', 'no-font-fit', 'title-start', 'title-end'];
-
 /**
  * Register the component.
  *
  * @return {Element} constructor
  */
 module.exports = Component.register('gaia-header', {
+  attrs: {
+    'no-font-fit': {
+      get() {
+        return this.attrValues.noFontFit;
+      },
+      set(val) {
+        this.attrValues.noFontFit = val;
+        setTimeout(() => this.init());
+      }
+    },
+    'action': {
+      get() {
+        return this.attrValues.action;
+      },
+      set(val) {
+        this.attrValues.action = val;
+        this.configureActionButton();
+      }
+    },
+    'title-start': {
+      get() {
+        return this.attrValues.titleStart;
+      },
+      set(val) {
+        this.attrValues.titleStart = val;
+      }
+    },
+    'title-end': {
+      get() {
+        return this.attrValues.titleEnd;
+      },
+      set(val) {
+        this.attrValues.titleEnd = val;
+      }
+    }
+  },
 
   /**
    * Called when the element is first created.
@@ -36,10 +70,10 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   created: function() {
-    this.attrs = {};
+    this.attrValues = {};
     this.runFontFitTimeout = null;
 
-    KNOWN_ATTRIBUTES.forEach((name) => this._updateAttribute(name));
+    Object.keys(this.attrs).forEach((name) => this._updateAttribute(name));
 
     this.createShadowRoot().innerHTML = this.template;
 
@@ -62,7 +96,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   init: function() {
-    if (this.attrs.noFontFit !== null) {
+    if (this.attrValues.noFontFit !== null) {
       return;
     }
 
@@ -94,19 +128,8 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   attributeChanged: function(attr) {
-    if (KNOWN_ATTRIBUTES.indexOf(attr) === -1) {
+    if (!(attr in this.attrs) || attr === 'no-font-fit') {
       return;
-    }
-
-    this._updateAttribute(attr);
-
-    if (attr === 'no-font-fit') {
-      setTimeout(() => this.init());
-      return;
-    }
-
-    if (attr === 'action') {
-      this.configureActionButton();
     }
 
     this.runFontFitSoon();
@@ -130,7 +153,7 @@ module.exports = Component.register('gaia-header', {
    */
   _updateAttribute: function(name) {
     var newVal = this.getAttribute(name);
-    this.attrs[this._camelCase(name)] = newVal;
+    this.attrValues[this._camelCase(name)] = newVal;
   },
 
   /**
@@ -174,8 +197,8 @@ module.exports = Component.register('gaia-header', {
   runFontFit: function() {
     for (var i = 0; i < this.els.headings.length; i++) {
       var heading = this.els.headings[i];
-      var start = parseInt(this.attrs.titleStart);
-      var end = parseInt(this.attrs.titleEnd);
+      var start = parseInt(this.attrValues.titleStart);
+      var end = parseInt(this.attrValues.titleEnd);
       start = isNaN(start) ? null : start;
       end = isNaN(end) ? null : end;
       fontFit.reformatHeading(heading, start, end);
@@ -189,7 +212,7 @@ module.exports = Component.register('gaia-header', {
    * @public
    */
   triggerAction: function() {
-    if (this.isSupportedAction(this.attrs.action)) {
+    if (this.isSupportedAction(this.attrValues.action)) {
       this.els.actionButton.click();
     }
   },
@@ -203,7 +226,7 @@ module.exports = Component.register('gaia-header', {
    */
   configureActionButton: function() {
     var old = this.els.actionButton.getAttribute('icon');
-    var type = this.attrs.action;
+    var type = this.attrValues.action;
     var supported = this.isSupportedAction(type);
     this.els.actionButton.classList.remove('icon-' + old);
     this.els.actionButton.setAttribute('icon', type);
@@ -231,7 +254,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   onActionButtonClick: function(e) {
-    var config = { detail: { type: this.attrs.action } };
+    var config = { detail: { type: this.attrValues.action } };
     var actionEvent = new CustomEvent('action', config);
     setTimeout(this.dispatchEvent.bind(this, actionEvent));
   },
