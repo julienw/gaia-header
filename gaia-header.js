@@ -58,6 +58,14 @@ module.exports = Component.register('gaia-header', {
       set(val) {
         this.attrValues.titleEnd = val;
       }
+    },
+    'available-width': {
+      get() {
+        return this.attrValues.availableWidth;
+      },
+      set(val) {
+        this.attrValues.availableWidth = val;
+      }
     }
   },
 
@@ -199,9 +207,11 @@ module.exports = Component.register('gaia-header', {
       var heading = this.els.headings[i];
       var start = parseInt(this.attrValues.titleStart);
       var end = parseInt(this.attrValues.titleEnd);
+      var width = parseInt(this.attrValues.availableWidth);
       start = isNaN(start) ? null : start;
       end = isNaN(end) ? null : end;
-      fontFit.reformatHeading(heading, start, end);
+      width =isNaN(width) ? null : end;
+      fontFit.reformatHeading(heading, start, end, width);
     }
   },
 
