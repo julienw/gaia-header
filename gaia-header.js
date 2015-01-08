@@ -18,6 +18,23 @@ require('gaia-icons');
  */
 var actionTypes = { menu: 1, back: 1, close: 1 };
 
+function numericalValueDescriptor(attributeName) {
+  return {
+    get: function() {
+      return this.attrValues[attributeName];
+    },
+
+    set: function(val) {
+      /* jshint validthis:true */
+      val = parseInt(val);
+      if (isNaN(val)) {
+        val = null;
+      }
+      this.attrValues[attributeName] = val;
+    }
+  };
+}
+
 /**
  * Register the component.
  *
@@ -26,47 +43,24 @@ var actionTypes = { menu: 1, back: 1, close: 1 };
 module.exports = Component.register('gaia-header', {
   attrs: {
     'no-font-fit': {
-      get() {
+      get: function() {
         return this.attrValues.noFontFit;
       },
-      set(val) {
-        this.attrValues.noFontFit = val;
-        setTimeout(() => this.init());
+      set: function(val) {
+        this.attrValues.noFontFit = val !== null;
       }
     },
     'action': {
-      get() {
+      get: function() {
         return this.attrValues.action;
       },
-      set(val) {
+      set: function(val) {
         this.attrValues.action = val;
-        this.configureActionButton();
       }
     },
-    'title-start': {
-      get() {
-        return this.attrValues.titleStart;
-      },
-      set(val) {
-        this.attrValues.titleStart = val;
-      }
-    },
-    'title-end': {
-      get() {
-        return this.attrValues.titleEnd;
-      },
-      set(val) {
-        this.attrValues.titleEnd = val;
-      }
-    },
-    'available-width': {
-      get() {
-        return this.attrValues.availableWidth;
-      },
-      set(val) {
-        this.attrValues.availableWidth = val;
-      }
-    }
+    'title-start': numericalValueDescriptor('title-start'),
+    'title-end': numericalValueDescriptor('title-end'),
+    'available-width': numericalValueDescriptor('available-width')
   },
 
   /**
@@ -81,8 +75,6 @@ module.exports = Component.register('gaia-header', {
     this.attrValues = {};
     this.runFontFitTimeout = null;
 
-    Object.keys(this.attrs).forEach((name) => this._updateAttribute(name));
-
     this.createShadowRoot().innerHTML = this.template;
 
     // Get els
@@ -93,6 +85,11 @@ module.exports = Component.register('gaia-header', {
     };
 
     this.els.actionButton.addEventListener('click', e => this.onActionButtonClick(e));
+
+    Object.keys(this.attrs).forEach(
+      (name) => this[name] = this.getAttribute(name)
+    );
+
     this.configureActionButton();
   },
 
@@ -104,7 +101,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   init: function() {
-    if (this.attrValues.noFontFit !== null) {
+    if (this['no-font-fit']) {
       return;
     }
 
@@ -136,32 +133,20 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   attributeChanged: function(attr) {
-    if (!(attr in this.attrs) || attr === 'no-font-fit') {
+    if (!(attr in this.attrs) || this['no-font-fit']) {
       return;
     }
 
+    switch(attr) {
+      case 'no-font-fit':
+        setTimeout(() => this.init());
+      return;
+      case 'action':
+        this.configureActionButton();
+      break;
+    }
+
     this.runFontFitSoon();
-  },
-
-  /**
-   * Used to camel case a word containing dashes
-   *
-   * @private
-   */
-  _camelCase: function ut_camelCase(str) {
-    return str.replace(/-(.)/g, function replacer(str, p1) {
-      return p1.toUpperCase();
-    });
-  },
-
-  /**
-   * Updates an attribute value in the internal attrs object
-   *
-   * @private
-   */
-  _updateAttribute: function(name) {
-    var newVal = this.getAttribute(name);
-    this.attrValues[this._camelCase(name)] = newVal;
   },
 
   /**
@@ -192,7 +177,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   runFontFitSoon: function() {
-    clearTimeout (this.runFontFitTimeout);
+    clearTimeout(this.runFontFitTimeout);
     this.runFontFitTimeout = setTimeout(() => this.runFontFit());
   },
 
@@ -205,12 +190,9 @@ module.exports = Component.register('gaia-header', {
   runFontFit: function() {
     for (var i = 0; i < this.els.headings.length; i++) {
       var heading = this.els.headings[i];
-      var start = parseInt(this.attrValues.titleStart);
-      var end = parseInt(this.attrValues.titleEnd);
-      var width = parseInt(this.attrValues.availableWidth);
-      start = isNaN(start) ? null : start;
-      end = isNaN(end) ? null : end;
-      width =isNaN(width) ? null : end;
+      var start = this['title-start'];
+      var end = this['title-end'];
+      var width = this['available-width'];
       fontFit.reformatHeading(heading, start, end, width);
     }
   },
@@ -222,7 +204,7 @@ module.exports = Component.register('gaia-header', {
    * @public
    */
   triggerAction: function() {
-    if (this.isSupportedAction(this.attrValues.action)) {
+    if (this.isSupportedAction(this.action)) {
       this.els.actionButton.click();
     }
   },
@@ -236,7 +218,7 @@ module.exports = Component.register('gaia-header', {
    */
   configureActionButton: function() {
     var old = this.els.actionButton.getAttribute('icon');
-    var type = this.attrValues.action;
+    var type = this.action;
     var supported = this.isSupportedAction(type);
     this.els.actionButton.classList.remove('icon-' + old);
     this.els.actionButton.setAttribute('icon', type);
@@ -264,7 +246,7 @@ module.exports = Component.register('gaia-header', {
    * @private
    */
   onActionButtonClick: function(e) {
-    var config = { detail: { type: this.attrValues.action } };
+    var config = { detail: { type: this.action } };
     var actionEvent = new CustomEvent('action', config);
     setTimeout(this.dispatchEvent.bind(this, actionEvent));
   },

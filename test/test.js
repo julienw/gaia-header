@@ -28,8 +28,10 @@ suite('GaiaHeader', function() {
 
   test('It hides the action button if no action type defined', function() {
     this.container.innerHTML = '<gaia-header></gaia-header>';
-    var inner = this.container.firstElementChild.shadowRoot.querySelector('.inner');
+    var element = this.container.firstElementChild;
+    var inner = element.shadowRoot.querySelector('.inner');
     assert.isFalse(inner.classList.contains('supported-action'));
+    assert.equal(element.action, null);
   });
 
   test('It doesn\'t show an action button for unsupported action types', function() {
@@ -37,6 +39,9 @@ suite('GaiaHeader', function() {
     var element = this.container.firstElementChild;
     var inner = element.shadowRoot.querySelector('.inner');
     assert.isFalse(inner.classList.contains('supported-action'));
+
+    // In the future, we may want to have "null" here in this case.
+    assert.equal(element.action, 'unsupported');
   });
 
   test('It adds the correct icon attribute for the action type', function() {
@@ -47,6 +52,7 @@ suite('GaiaHeader', function() {
       var inner = element.shadowRoot.querySelector('.inner');
       assert.isTrue(actionButton.classList.contains('icon-' + type));
       assert.isTrue(inner.classList.contains('supported-action'));
+      assert.equal(element.action, type);
     }, this);
   });
 
@@ -57,6 +63,7 @@ suite('GaiaHeader', function() {
     var actionButton = element.shadowRoot.querySelector('.action-button');
     var inner = element.shadowRoot.querySelector('.inner');
     assert.isTrue(actionButton.classList.contains('icon-back'));
+    assert.equal(element.action, 'back');
 
     this.sandbox.stub(realGaiaHeaderFontFit, 'reformatHeading');
 
@@ -65,6 +72,7 @@ suite('GaiaHeader', function() {
     this.sandbox.clock.tick();
     assert.isTrue(actionButton.classList.contains('icon-close'));
     assert.isTrue(inner.classList.contains('supported-action'));
+    assert.equal(element.action, 'close');
     sinon.assert.calledWith(realGaiaHeaderFontFit.reformatHeading, h1);
 
     /* change to an unsupported action */
@@ -72,6 +80,9 @@ suite('GaiaHeader', function() {
     this.sandbox.clock.tick();
     assert.isFalse(actionButton.classList.contains('icon-unsupported'));
     assert.isFalse(inner.classList.contains('supported-action'));
+
+    // In the future, we may want to have "null" here in this case.
+    assert.equal(element.action, 'unsupported');
     sinon.assert.calledWith(realGaiaHeaderFontFit.reformatHeading, h1);
 
     /* back to something supported */
@@ -79,18 +90,23 @@ suite('GaiaHeader', function() {
     this.sandbox.clock.tick();
     assert.isTrue(actionButton.classList.contains('icon-menu'));
     assert.isTrue(inner.classList.contains('supported-action'));
+    assert.equal(element.action, 'menu');
     sinon.assert.calledWith(realGaiaHeaderFontFit.reformatHeading, h1);
   });
 
-  suite('title-start and title-end attributes', function() {
+  suite('title-start, title-end, available-width attributes', function() {
     var h1, element;
 
     function insertHeader(container, attrs = {}) {
-      var start = 'titleStart' in attrs ? 'title-start="' +  attrs.titleStart + '"' : '';
-      var end = 'titleEnd' in attrs ? 'title-end="' +  attrs.titleEnd + '"': '';
+      var start = 'titleStart' in attrs ?
+        'title-start="' +  attrs.titleStart + '"' : '';
+      var end = 'titleEnd' in attrs ?
+        'title-end="' +  attrs.titleEnd + '"': '';
+      var width = 'availableWidth' in attrs ?
+        'available-width="' +  attrs.availableWidth + '"': '';
 
       container.innerHTML = `
-        <gaia-header ${start} ${end}>
+        <gaia-header ${start} ${end} ${width}>
           <h1></h1>
         </gaia-header>
       `;
@@ -109,80 +125,163 @@ suite('GaiaHeader', function() {
 
     suite('normal cases', function() {
       setup(function() {
-        insertHeader(this.container, {titleStart: 50, titleEnd: 100});
+        insertHeader(
+          this.container,
+          { titleStart: 50, titleEnd: 100, availableWidth: 200 });
       });
 
       test('are correctly taken into account', function() {
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, 50, 100
+          h1, 50, 100, 200
         );
+
+        assert.equal(element['title-start'], 50);
+        assert.equal(element['title-end'], 100);
+        assert.equal(element['available-width'], 200);
       });
 
       test('changing start attribute is taken into account', function() {
         element.setAttribute('title-start', '0');
+        assert.equal(element['title-start'], 0);
+
         this.sandbox.clock.tick();
 
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, 0, 100
+          h1, 0, 100, 200
         );
 
         element.removeAttribute('title-start');
+        assert.equal(element['title-start'], null);
+
         this.sandbox.clock.tick();
 
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, null, 100
+          h1, null, 100, 200
         );
       });
 
       test('changing end attribute is taken into account', function() {
         element.setAttribute('title-end', '0');
+        assert.equal(element['title-end'], 0);
+
         this.sandbox.clock.tick();
 
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, 50, 0
+          h1, 50, 0, 200
         );
 
         element.removeAttribute('title-end');
+        assert.equal(element['title-end'], null);
+
         this.sandbox.clock.tick();
 
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, 50, null
+          h1, 50, null, 200
         );
       });
 
-      test('changing both attributes trigger reformating only once', function() {
+      test('changing width attribute is taken into account', function() {
+        element.setAttribute('available-width', '50');
+        assert.equal(element['available-width'], 50);
+
+        this.sandbox.clock.tick();
+        sinon.assert.calledWith(
+          realGaiaHeaderFontFit.reformatHeading,
+          h1, 50, 100, 50
+        );
+
+        element.removeAttribute('available-width');
+        assert.equal(element['available-width'], null);
+
+        this.sandbox.clock.tick();
+
+        sinon.assert.calledWith(
+          realGaiaHeaderFontFit.reformatHeading,
+          h1, 50, 100, null
+        );
+      });
+
+      test('changing all attributes trigger reformating only once', function() {
         realGaiaHeaderFontFit.reformatHeading.reset();
 
         element.setAttribute('title-start', '0');
         element.setAttribute('title-end', '0');
+        element.setAttribute('available-width', '50');
         this.sandbox.clock.tick();
 
         sinon.assert.calledOnce(realGaiaHeaderFontFit.reformatHeading);
       });
     });
 
-    suite('corner cases', function() {
-      test('0 is not considered as absent', function() {
-        insertHeader(this.container, {titleStart: 0, titleEnd: 0});
+    suite('some attributes are absent', function() {
+      test('title-start is absent', function() {
+        insertHeader(
+          this.container,
+          { titleEnd: 100, availableWidth: 200 }
+        );
 
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, 0, 0
+          h1, null, 100, 200
+        );
+      });
+
+      test('title-end is absent', function() {
+        insertHeader(
+          this.container,
+          { titleStart: 50, availableWidth: 200 }
+        );
+
+        sinon.assert.calledWith(
+          realGaiaHeaderFontFit.reformatHeading,
+          h1, 50, null, 200
+        );
+      });
+
+      test('available-width is absent', function() {
+        insertHeader(
+          this.container,
+          { titleStart: 50, titleEnd: 100 }
+        );
+
+        sinon.assert.calledWith(
+          realGaiaHeaderFontFit.reformatHeading,
+          h1, 50, 100, null
+        );
+      });
+    });
+
+    suite('error cases', function() {
+      test('0 is not considered as absent', function() {
+        insertHeader(
+          this.container,
+          { titleStart: 0, titleEnd: 0, availableWidth: 0 }
+        );
+
+        sinon.assert.calledWith(
+          realGaiaHeaderFontFit.reformatHeading,
+          h1, 0, 0, 0
         );
       });
 
       test('non-number is considered as absent', function() {
-        insertHeader(this.container, {titleStart: 'invalid', titleEnd: 'invalid'});
+        insertHeader(
+          this.container,
+          { titleStart: 'invalid', titleEnd: 'invalid', availableWidth: 'invalid' }
+        );
 
         sinon.assert.calledWith(
           realGaiaHeaderFontFit.reformatHeading,
-          h1, null, null
+          h1, null, null, null
         );
+        assert.equal(element['title-start'], null);
+        assert.equal(element['title-end'], null);
+        assert.equal(element['available-width'], null);
       });
     });
 
@@ -255,10 +354,17 @@ suite('GaiaHeader', function() {
     var element = this.container.firstElementChild;
     var h1 = element.querySelector('h1');
 
+    assert.equal(element['no-font-fit'], true);
+
     sinon.assert.notCalled(realGaiaHeaderFontFit.reformatHeading);
     sinon.assert.notCalled(realGaiaHeaderFontFit.observeHeadingChanges);
 
+    element.setAttribute('title-start', '5');
+    this.sandbox.clock.tick();
+    sinon.assert.notCalled(realGaiaHeaderFontFit.reformatHeading);
+
     element.removeAttribute('no-font-fit');
+    assert.equal(element['no-font-fit'], false);
     this.sandbox.clock.tick();
 
     sinon.assert.calledWith(realGaiaHeaderFontFit.reformatHeading, h1);
