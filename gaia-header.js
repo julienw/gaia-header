@@ -206,7 +206,7 @@ module.exports = component.register('gaia-header', {
   getTitleStyle: function(el, space) {
     debug('get el style', el, space);
     var text = el.textContent;
-    var styleId = space.start + text + space.end;
+    var styleId = space.start + text + space.end + '#' + space.value;
 
     // Bail when there's no text (or just whitespace)
     if (!text || !text.trim()) { return debug('exit: no text'); }
@@ -221,7 +221,7 @@ module.exports = component.register('gaia-header', {
       min: MINIMUM_FONT_SIZE_CENTERED
     });
 
-    var overflowing = fontFitResult.textWidth > textSpace;
+    var overflowing = fontFitResult.overflowing;
     var padding = { start: 0, end: 0 };
 
     // If the text is overflowing in the
@@ -339,6 +339,7 @@ module.exports = component.register('gaia-header', {
   /**
    * Start the observer listening
    * for DOM mutations.
+   * Start the listener for 'resize' event.
    *
    * @private
    */
@@ -350,6 +351,9 @@ module.exports = component.register('gaia-header', {
       attributes: true,
       subtree: true
     });
+
+    window.addEventListener('resize', this);
+    this._resizeHandled = false;
 
     this.observing = true;
     debug('observer started');
@@ -364,8 +368,41 @@ module.exports = component.register('gaia-header', {
   observerStop: function() {
     if (!this.observing) { return; }
     this.observer.disconnect();
+    window.removeEventListener('resize', this);
+    this._resizeHandled = false;
+
     this.observing = false;
     debug('observer stopped');
+  },
+
+  /**
+   * Handle DOM events
+   */
+  handleEvent: function(e) {
+    switch(e.type) {
+      case 'resize':
+        this.onResize();
+        break;
+    }
+  },
+
+  /**
+   * handle 'resize' events
+   */
+  onResize: function() {
+    if (this._resizeHandled) {
+      return;
+    }
+
+    if (this.notFlush) {
+      return;
+    }
+
+    this._resizeHandled = true;
+    window.requestAnimationFrame(() => {
+      this._resizeHandled = false;
+      this.runFontFitSoon();
+    });
   },
 
   /**

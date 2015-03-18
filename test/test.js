@@ -257,6 +257,48 @@ suite('GaiaHeader', function() {
         assert.equal(h1.style.fontSize, '18px');
       }).then(done, done);
     });
+
+    test('fontFit is run again when the window is resized', function() {
+      this.dom.innerHTML = '<gaia-header action="back"><h1>Title</h1></gaia-header>';
+      var header = this.dom.firstElementChild;
+
+      return afterNext(header, 'runFontFit').then(() => {
+        this.fontFit.reset();
+        // make requestAnimationFrame async
+        this.sinon.stub(window, 'requestAnimationFrame').yields();
+
+        windowWidth = 600;
+        var resizeEvent = new UIEvent('resize');
+        window.dispatchEvent(resizeEvent);
+
+        return afterNext(header, 'runFontFit');
+      }).then(() => {
+        sinon.assert.calledOnce(this.fontFit);
+        this.fontFit.reset();
+
+        var resizeEvent = new UIEvent('resize');
+        window.dispatchEvent(resizeEvent);
+        return afterNext(header, 'runFontFit');
+      }).then(() => {
+        sinon.assert.notCalled(this.fontFit, 'fontFit is not called if the width does not change');
+      });
+    });
+
+    test('fontFit is not run when window is resized and we use not-flush', function() {
+      this.dom.innerHTML = '<gaia-header not-flush action="back"><h1>Title</h1></gaia-header>';
+      var header = this.dom.firstElementChild;
+
+      return afterNext(header, 'runFontFit').then(() => {
+        this.runFontFit.reset();
+        this.sinon.stub(window, 'requestAnimationFrame').yields();
+
+        windowWidth = 600;
+        var resizeEvent = new UIEvent('resize');
+        window.dispatchEvent(resizeEvent);
+      }).then(() => {
+        sinon.assert.notCalled(header.runFontFit);
+      });
+    });
   });
 
   suite('Mutation observer', function() {
