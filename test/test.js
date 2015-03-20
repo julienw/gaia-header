@@ -265,11 +265,12 @@ suite('GaiaHeader', function() {
       return afterNext(header, 'runFontFit').then(() => {
         this.fontFit.reset();
         // make requestAnimationFrame async
-        this.sinon.stub(window, 'requestAnimationFrame').yields();
+        this.sinon.stub(window, 'requestAnimationFrame').returns(1);
 
         windowWidth = 600;
         var resizeEvent = new UIEvent('resize');
         window.dispatchEvent(resizeEvent);
+        window.requestAnimationFrame.yield();
 
         return afterNext(header, 'runFontFit');
       }).then(() => {
@@ -278,6 +279,7 @@ suite('GaiaHeader', function() {
 
         var resizeEvent = new UIEvent('resize');
         window.dispatchEvent(resizeEvent);
+        window.requestAnimationFrame.yield();
         return afterNext(header, 'runFontFit');
       }).then(() => {
         sinon.assert.notCalled(this.fontFit, 'fontFit is not called if the width does not change');
@@ -290,12 +292,12 @@ suite('GaiaHeader', function() {
 
       return afterNext(header, 'runFontFit').then(() => {
         this.runFontFit.reset();
-        this.sinon.stub(window, 'requestAnimationFrame').yields();
+        this.sinon.stub(window, 'requestAnimationFrame').returns(1);
 
         windowWidth = 600;
         var resizeEvent = new UIEvent('resize');
         window.dispatchEvent(resizeEvent);
-      }).then(() => {
+        sinon.assert.notCalled(window.requestAnimationFrame);
         sinon.assert.notCalled(header.runFontFit);
       });
     });

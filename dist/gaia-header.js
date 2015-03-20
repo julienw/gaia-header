@@ -660,6 +660,7 @@ module.exports = component.register('gaia-header', {
 
     this.unresolved = {};
     this.pending = {};
+    this._resizeThrottlingId = null;
   },
 
   /**
@@ -680,6 +681,7 @@ module.exports = component.register('gaia-header', {
     debug('attached');
     this.runFontFitSoon();
     this.observerStart();
+    window.addEventListener('resize', this);
   },
 
   /**
@@ -690,12 +692,13 @@ module.exports = component.register('gaia-header', {
    */
   detached: function() {
     debug('detached');
+    window.removeEventListener('resize', this);
     this.observerStop();
     this.clearPending();
   },
 
   /**
-   * Clears pending `.nextTick()`s
+   * Clears pending `.nextTick()`s and requestAnimationFrame's.
    *
    * @private
    */
@@ -704,6 +707,9 @@ module.exports = component.register('gaia-header', {
       this.pending[key].clear();
       delete this.pending[key];
     }
+
+    window.cancelAnimationFrame(this._resizeThrottlingId);
+    this._resizeThrottlingId = null;
   },
 
   /**
@@ -909,9 +915,6 @@ module.exports = component.register('gaia-header', {
       subtree: true
     });
 
-    window.addEventListener('resize', this);
-    this._resizeHandled = false;
-
     this.observing = true;
     debug('observer started');
   },
@@ -925,17 +928,19 @@ module.exports = component.register('gaia-header', {
   observerStop: function() {
     if (!this.observing) { return; }
     this.observer.disconnect();
-    window.removeEventListener('resize', this);
-    this._resizeHandled = false;
 
     this.observing = false;
     debug('observer stopped');
   },
 
   /**
-   * Handle DOM events
+   * Handle DOM events.
+   * @param {Event} The DOM Event that's being handled.
+   *
+   * @private
    */
   handleEvent: function(e) {
+    debug('received event', e.type, e);
     switch(e.type) {
       case 'resize':
         this.onResize();
@@ -944,16 +949,25 @@ module.exports = component.register('gaia-header', {
   },
 
   /**
-   * handle 'resize' events
+   * Handle 'resize' events.
+   *
+   * @private
    */
   onResize: function() {
-    if (this._resizeHandled) {
+    debug('onResize', this._resizeThrottlingId);
+
+    if (this._resizeThrottlingId !== null) {
       return;
     }
 
-    this._resizeHandled = true;
-    window.requestAnimationFrame(() => {
-      this._resizeHandled = false;
+    if (this.notFlush) {
+      return;
+    }
+
+    /* Resize events can arrive at a very high rate, so we're trying to
+     * reasonably throttle these events. */
+    this._resizeThrottlingId = window.requestAnimationFrame(() => {
+      this._resizeThrottlingId = null;
       this.runFontFitSoon();
     });
   },
