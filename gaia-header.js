@@ -104,6 +104,9 @@ module.exports = component.register('gaia-header', {
     this.unresolved = {};
     this.pending = {};
     this._resizeThrottlingId = null;
+
+    // bind the listener in advance so that we can remove it when detaching.
+    this.onResize = this.onResize.bind(this);
   },
 
   /**
@@ -124,7 +127,7 @@ module.exports = component.register('gaia-header', {
     debug('attached');
     this.runFontFitSoon();
     this.observerStart();
-    window.addEventListener('resize', this);
+    window.addEventListener('resize', this.onResize);
   },
 
   /**
@@ -135,7 +138,7 @@ module.exports = component.register('gaia-header', {
    */
   detached: function() {
     debug('detached');
-    window.removeEventListener('resize', this);
+    window.removeEventListener('resize', this.onResize);
     this.observerStop();
     this.clearPending();
   },
@@ -377,33 +380,15 @@ module.exports = component.register('gaia-header', {
   },
 
   /**
-   * Handle DOM events.
+   * Handle 'resize' events.
    * @param {Event} The DOM Event that's being handled.
    *
    * @private
    */
-  handleEvent: function(e) {
-    debug('received event', e.type, e);
-    switch(e.type) {
-      case 'resize':
-        this.onResize();
-        break;
-    }
-  },
-
-  /**
-   * Handle 'resize' events.
-   *
-   * @private
-   */
-  onResize: function() {
+  onResize: function(e) {
     debug('onResize', this._resizeThrottlingId);
 
     if (this._resizeThrottlingId !== null) {
-      return;
-    }
-
-    if (this.notFlush) {
       return;
     }
 

@@ -283,10 +283,20 @@ suite('GaiaHeader', function() {
         return afterNext(header, 'runFontFit');
       }).then(() => {
         sinon.assert.notCalled(this.fontFit, 'fontFit is not called if the width does not change');
+
+        window.requestAnimationFrame.reset();
+        header.runFontFit.reset();
+
+        this.dom.innerHTML = '';
+        windowWidth = 700;
+        var resizeEvent = new UIEvent('resize');
+        window.dispatchEvent(resizeEvent);
+        sinon.assert.notCalled(window.requestAnimationFrame, 'nothing is run when header is detached');
+        sinon.assert.notCalled(header.runFontFit, 'fontFit is not called when header is detached');
       });
     });
 
-    test('fontFit is not run when window is resized and we use not-flush', function() {
+    test('fontFit is run when window is resized and we use not-flush', function() {
       this.dom.innerHTML = '<gaia-header not-flush action="back"><h1>Title</h1></gaia-header>';
       var header = this.dom.firstElementChild;
 
@@ -297,8 +307,11 @@ suite('GaiaHeader', function() {
         windowWidth = 600;
         var resizeEvent = new UIEvent('resize');
         window.dispatchEvent(resizeEvent);
-        sinon.assert.notCalled(window.requestAnimationFrame);
-        sinon.assert.notCalled(header.runFontFit);
+
+        window.requestAnimationFrame.yield();
+        return afterNext(header, 'runFontFit');
+      }).then(() => {
+        sinon.assert.calledOnce(this.fontFit);
       });
     });
   });
